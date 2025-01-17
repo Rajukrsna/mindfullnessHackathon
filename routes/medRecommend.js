@@ -3,6 +3,14 @@ const express = require('express');
 const router = express.Router();
  const axios = require('axios');
  const MeditationPractice = require('../model/Practice');
+   
+
+ const videoUrlMapping = {
+  "Alternate Nostril Breathing": "https://youtu.be/G8xIEzX40bA",
+  "4-7-8 Breathing": "https://youtu.be/G8xIEzX40bA",
+  "Loving-Kindness Meditation": "https://youtu.be/G8xIEzX40bA",
+  // Add more mappings here
+};
 
 router.post('/medRecommend', async(req, res) => {
     console.log('Medication Recommendation route hit');
@@ -81,7 +89,6 @@ const response = await axios.post(
 const lines = response.data.split('\n');
 
 const dataLines = lines.filter(line => line.startsWith('data:'));
-
 const jsonData = dataLines.map(line => {
   const cleanLine = line.replace(/^data:\s*/, '');
   return cleanLine !== '[DONE]' ? JSON.parse(cleanLine) : null;
@@ -98,9 +105,8 @@ jsonData.forEach(chunk => {
 console.log(accumulatedDelta); 
 
 // Now use accumulatedDelta directly as a string
-const cleanedData = accumulatedDelta
-  .replace(/```/g, '') // Remove any backticks
-  .trim();  // Remove leading/trailing whitespace
+const cleanedData = accumulatedDelta.replace(/\n/g, '').trim();
+// Remove leading/trailing whitespace
 
 // If the cleanedData is expected to be a valid JSON string, parse it
 let parsedData;
@@ -110,17 +116,51 @@ try {
   console.error("Error parsing cleaned data:", error);
   return res.status(500).send("Error parsing data");
 }
+// Array to hold updated practices
+let updatedPractices = [];
 
-// Create a new MeditationPractice object based on the parsed data
-const practice = new MeditationPractice({
-  name: parsedData.practices[0].name,
-  description: parsedData.practices[0].description,
-  benefits: parsedData.practices[0].benefits,
-  videoUrl: "https://www.youtube.com/watch?v=1a2b3c4d5e",
+for (const practiceData of parsedData.practices) {
+  const existingPractice = await MeditationPractice.findOne({ name: practiceData.name });
+
+  if (!existingPractice) { // Check if practice already exists
+    const videoUrl = videoUrlMapping[practiceData.name] || "https://www.youtube.com/default_video";
+    console.log("Video URL:", videoUrl);
+    const practice = new MeditationPractice({
+      name: practiceData.name,
+      description: practiceData.description,
+      benefits: practiceData.benefits,
+      videoUrl: videoUrl,
+    });
+
+    await practice.save();
+    
+    // Add the updated practice to the array
+    updatedPractices.push({
+      name: practiceData.name,
+      description: practiceData.description,
+      benefits: practiceData.benefits,
+      videoUrl: videoUrl,
+    });
+  } else {
+  
+
+// If the practice already exists, update the video URL (or any other field if needed)
+const videoUrl = videoUrlMapping[practiceData.name] || "https://www.youtube.com/default_video";
+existingPractice.videoUrl = videoUrl;
+await existingPractice.save();
+
+// Add the updated practice to the array
+updatedPractices.push({
+  name: practiceData.name,
+  description: existingPractice.description,
+  benefits: existingPractice.benefits,
+  videoUrl: videoUrl,
 });
+  }
+}
 
-await practice.save();
-res.json({ accumulatedDelta });
+// Send the updated practices in the response
+res.json({ updatedPractices });
 
 } catch (error) {
   console.error("Error:", error);

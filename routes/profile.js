@@ -11,11 +11,15 @@ router.get('/', async(req,res)=>{
     const practice  = await Practice.find();
 res.render('profile',{practice: practice});
 })
-router.get('/habit-tracker',(req, res) => {
-res.render('habitTracker')
-})
+router.get('/analytics', (req,res)=>{
+  res.render("video");
+});
+
 router.get('/api/habit-tracker-events', async (req, res) => {
     try {
+        const medName = req.body;//get the meditation name
+        //const habits = await HabitTracker.find({user.Id})
+        //get the completed dates of the medName
       const habits = await HabitTracker.find();
       console.log(habits);  // Filter by logged-in user
       const events = habits.map(habit => ({

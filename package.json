@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@tensorflow-models/face-landmarks-detection": "^1.0.6",
+    "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.7.9",
     "canvas": "^3.0.0",
     "cookie-parser": "^1.4.7",
